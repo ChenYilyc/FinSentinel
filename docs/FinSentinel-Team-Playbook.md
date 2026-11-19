@@ -88,7 +88,7 @@ git diff --cached --name-only
 
 ```powershell
 git commit -m "Import FinSentinel research agent baseline"
-$repoUrl = Read-Host 'Paste the HTTPS URL of your empty GitHub repository'
+$repoUrl = Read-Host 'https://github.com/ChenYilyc/FinSentinel.git'
 git remote add origin $repoUrl
 git remote -v
 git push -u origin main
