@@ -1,4 +1,5 @@
-﻿import hashlib
+import hashlib
+from datetime import date
 from pathlib import Path
 import unittest
 
@@ -26,3 +27,25 @@ class PdfPassagesTests(unittest.TestCase):
         self.assertEqual(scan.status, "needs_review")
         self.assertIsNone(scan.text)
         self.assertEqual(scan.reason, "no_extractable_text")
+
+    def test_only_readable_lines_become_citable_passages(self):
+        document = parse_pdf(SAMPLE.read_bytes())
+
+        first, second = document.passages(
+            ticker="NVDA", quarter="2025-Q3", published=date(2025, 11, 12)
+        )
+
+        locator = f"#filing-{document.version}-P1"
+        self.assertEqual(first, {
+            "ticker": "NVDA",
+            "quarter": "2025-Q3",
+            "published": "2025-11-12",
+            "excerpt": "FinSentinel - Synthetic Filing",
+            "url": f"{locator}-S1",
+            "source": "uploaded_pdf",
+            "page": 1,
+            "document_version": document.version,
+        })
+        self.assertEqual(second["excerpt"], "Quarterly revenue was USD 125 million.")
+        self.assertEqual(second["url"], f"{locator}-S2")
+        self.assertEqual(second["page"], 1)
