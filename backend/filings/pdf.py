@@ -1,7 +1,9 @@
-﻿"""Extract page text from a PDF while retaining page locations."""
+"""Extract page text from a PDF while retaining page locations."""
 
 import hashlib
+from collections.abc import Iterator
 from dataclasses import dataclass
+from datetime import date
 from io import BytesIO
 from typing import Literal
 
@@ -21,6 +23,29 @@ class PdfPage:
 class PdfDocument:
     version: str
     pages: tuple[PdfPage, ...]
+
+    def passages(
+        self, *, ticker: str, quarter: str, published: date
+    ) -> Iterator[dict[str, str | int]]:
+        """Yield citable single-line excerpts in extracted page order."""
+        published_on = published.isoformat()
+        for page in self.pages:
+            if page.status != "ok" or page.text is None:
+                continue
+
+            lines = (line.strip() for line in page.text.splitlines())
+            excerpts = (line for line in lines if line)
+            for number, excerpt in enumerate(excerpts, start=1):
+                yield {
+                    "ticker": ticker,
+                    "quarter": quarter,
+                    "published": published_on,
+                    "excerpt": excerpt,
+                    "url": f"#filing-{self.version}-P{page.page}-S{number}",
+                    "source": "uploaded_pdf",
+                    "page": page.page,
+                    "document_version": self.version,
+                }
 
 
 def parse_pdf(raw: bytes) -> PdfDocument:
