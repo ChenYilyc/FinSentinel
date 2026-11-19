@@ -1,0 +1,12 @@
+ticker,name,industry,price
+NVDA,NVIDIA,Semiconductors,150
+AMD,Advanced Micro Devices,Semiconductors,120
+JPM,JPMorgan Chase,Banking,200
+BAC,Bank of America,Banking,40
+XOM,Exxon Mobil,Energy,100
+CVX,Chevron,Energy,140
+JNJ,Johnson & Johnson,Healthcare,160
+PFE,Pfizer,Healthcare,25
+MSFT,Microsoft,Software,400
+CRM,Salesforce,Software,240
+CASH,US dollar cash,Cash,1

@@ -1,0 +1,9 @@
+name: finsentinel
+services:
+  dashboard:
+    build: .
+    environment:
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-flash}
+    ports:
+      - "127.0.0.1:8000:8000"
