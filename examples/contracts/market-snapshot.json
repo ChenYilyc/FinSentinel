@@ -1,0 +1,10 @@
+{
+  "source": "synthetic-contract-fixture",
+  "trading_date": "2026-10-30",
+  "as_of": "2026-10-30T20:15:00Z",
+  "currency": "USD",
+  "quotes": [
+    {"ticker": "AMD", "status": "available", "close": 120.00},
+    {"ticker": "NVDA", "status": "missing", "close": null}
+  ]
+}
