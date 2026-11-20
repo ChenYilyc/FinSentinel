@@ -1,0 +1,16 @@
+{
+  "status": "found",
+  "corpus": "User-provided text and metadata",
+  "total_matches": 1,
+  "documents": [
+    {
+      "ticker": "NVDA",
+      "quarter": "2025-Q3",
+      "published": "2025-11-12",
+      "excerpt": "Revenue for the quarter was USD 125 million.",
+      "url": "#filing-36d5f8458423b4f284068cda60515d032b88ca545af0e0b22f1ddc5d05d56bbb-L3",
+      "line": 3,
+      "source": "uploaded_text"
+    }
+  ]
+}
