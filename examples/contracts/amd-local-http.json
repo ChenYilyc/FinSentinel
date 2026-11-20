@@ -1,0 +1,54 @@
+[
+  {
+    "decline_pct": 8,
+    "receipt": {
+      "version": 1,
+      "run_id": "e5321403-5028-43c8-8d17-9d05633d5ebd",
+      "resumptions": 0,
+      "finished_at": "2026-11-20T01:00:56.245050+00:00",
+      "elapsed_ms": 0,
+      "engine": "local",
+      "scope": "filings_and_holdings",
+      "outcome": "completed",
+      "model_rounds": 0,
+      "steps": [
+        {
+          "round": null,
+          "tool": "search_filings",
+          "status": "found"
+        },
+        {
+          "round": null,
+          "tool": "get_portfolio_exposure",
+          "status": "ok"
+        }
+      ]
+    }
+  },
+  {
+    "decline_pct": 25,
+    "receipt": {
+      "version": 1,
+      "run_id": "02c2cc07-c524-4eab-af59-61b11b18b7b5",
+      "resumptions": 0,
+      "finished_at": "2026-11-20T01:00:56.247049+00:00",
+      "elapsed_ms": 15,
+      "engine": "local",
+      "scope": "filings_and_holdings",
+      "outcome": "completed",
+      "model_rounds": 0,
+      "steps": [
+        {
+          "round": null,
+          "tool": "search_filings",
+          "status": "found"
+        },
+        {
+          "round": null,
+          "tool": "get_portfolio_exposure",
+          "status": "ok"
+        }
+      ]
+    }
+  }
+]

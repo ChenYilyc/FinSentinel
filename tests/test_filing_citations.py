@@ -40,6 +40,7 @@ class FilingCitationTests(unittest.TestCase):
             result = ask(QuestionRequest(csv_text=DEMO, question="AMD Q3 revenue?"))
         self.assertEqual((result["mode"], result["provider"], result["model"]), ("live", *config[:2]))
         self.assertEqual(result["answer"], "Revenue was $9.2 billion.")
+        self.assertEqual(result["receipt"]["outcome"], "draft")
         self.assertEqual(result["filing_citations"]["matched"][0]["url"], URL)
         self.assertEqual(result["filing_citations"]["issues"], [])
         self.assertNotIn(config[2], str(result))
@@ -71,3 +72,33 @@ class FilingCitationTests(unittest.TestCase):
             with self.subTest(issues=issues):
                 result = run_agent("Question", lambda _: {"content": content})
                 self.assertEqual(result["filing_citations"], {"matched": [], "issues": issues})
+
+    def test_exact_quote_only_stays_visible_as_matched_evidence(self):
+        result = simulate(LINE)
+        self.assertEqual(result["status"], "draft")
+        self.assertEqual(result["filing_citations"]["matched"][0]["excerpt"], QUOTE)
+
+    def test_citation_failure_withholds_text_and_preserves_tool_evidence(self):
+        for line, issue in [(LINE.replace("$9.2", "$92"), "quote_mismatch"),
+                            (LINE.replace("2025-Q3", "2025-Q2"), "source_not_retrieved"),
+                            ("FILING | AMD", "invalid_format"), ("", "missing_quote")]:
+            with self.subTest(issue=issue):
+                result = simulate("Revenue was $92 billion.\n" + line)
+                self.assertEqual(result["status"], "needs_review")
+                self.assertEqual(result["receipt"]["outcome"], "needs_review")
+                self.assertIsNone(result["answer"])
+                self.assertEqual(result["filing_citations"]["issues"], [issue])
+                self.assertEqual(result["trace"][0]["result"]["documents"][0]["excerpt"], QUOTE)
+
+    def test_one_valid_quote_cannot_clear_a_failed_quote(self):
+        result = simulate("Review these figures.\n" + LINE + "\n" + LINE.replace("$9.2", "$92"))
+        self.assertIsNone(result["answer"])
+        self.assertEqual(result["filing_citations"]["matched"][0]["url"], URL)
+        self.assertEqual(result["filing_citations"]["issues"], ["quote_mismatch"])
+
+    def test_empty_search_allows_explicit_gap_but_withholds_unretrieved_citation(self):
+        gap = simulate("No matching filing was found by this date.", cutoff="2025-11-03")
+        self.assertEqual(gap["status"], "draft")
+        cited = simulate("Revenue was $9.2 billion.\n" + LINE, cutoff="2025-11-03")
+        self.assertEqual(cited["status"], "needs_review")
+        self.assertIsNone(cited["answer"])

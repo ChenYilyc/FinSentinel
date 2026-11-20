@@ -32,5 +32,9 @@
 
 **代码复盘。** 打开 `backend/filing_citations.py` 的 `check_filing_quotes`。它从本次 trace 建立索引，再逐条核对模型提交的引文。把 Q3 引文的金额从 $9.2 billion 改成 $92 billion，URL 保持正确，返回 `quote_mismatch`。把检索截止日改成 2025-11-03，并模拟模型仍给出正确的 Q3 原文，此时工具没有返回这份公告，校验返回 `source_not_retrieved`。该检查依据模型实际调用的参数；验收时还要核对参数是否符合用户问题。
 
-在项目根目录运行 `python -m unittest discover -s tests -p test_filing_citations.py -v` 可重复这两种故障及正常路径。测试通过替身返回模型消息，两轮消息之间执行真实的本地检索工具。
+Live 回答只要出现一项引文校验错误，接口和运行回执就会标记 `needs_review`，接口返回 `answer: null`。页面仍展示工具实际返回的原文、已核对的引文和失败原因。一条正确引文与一条错误引文同时出现时，整份正文都需复核。断线恢复后的最终回答经过同一检查。
+
+核对时留意两种情况。工具已经检索到公告而模型漏引，结果是 `missing_quote`。若截止日内未找到匹配公告，模型可以说明资料不足。纯持仓计算沿用原有校验。这些检查覆盖声明的引用，正文中数字的含义及推断仍需人工复核。
+
+在项目根目录运行 `python -m unittest discover -s tests -p test_filing_citations.py -v` 可重复这些故障及正常路径。测试通过替身返回模型消息，两轮消息之间执行真实的本地检索工具。
 

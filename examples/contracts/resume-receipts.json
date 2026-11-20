@@ -1,0 +1,41 @@
+{
+  "test": "loopback HTTP, simulated model transport",
+  "interrupted": {
+    "version": 1,
+    "run_id": "d451cd0d-ac39-44db-8340-bd386322524a",
+    "resumptions": 0,
+    "finished_at": "2026-11-19T07:05:20.322627+00:00",
+    "elapsed_ms": 0,
+    "engine": "simulated",
+    "scope": "filings_only",
+    "outcome": "provider_interrupted",
+    "model_rounds": 2,
+    "steps": [
+      {
+        "round": 1,
+        "tool": "search_filings",
+        "status": "found"
+      }
+    ]
+  },
+  "recovered": {
+    "version": 1,
+    "run_id": "d451cd0d-ac39-44db-8340-bd386322524a",
+    "resumptions": 1,
+    "finished_at": "2026-11-19T07:05:20.340942+00:00",
+    "elapsed_ms": 31,
+    "engine": "simulated",
+    "scope": "filings_only",
+    "outcome": "draft",
+    "model_rounds": 3,
+    "steps": [
+      {
+        "round": 1,
+        "tool": "search_filings",
+        "status": "found"
+      }
+    ]
+  },
+  "matched_quotes": 1,
+  "duplicate_resume_returned_same_result": true
+}

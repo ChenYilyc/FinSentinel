@@ -56,8 +56,8 @@ class AgentReportTests(unittest.TestCase):
                 return {"content": "AMD accounts for all industry holdings."}
             return {"tool_calls": [{"id": "call1", "type": "function", "function": {
                 "name": "get_portfolio_exposure", "arguments": '{"ticker":"AMD"}'}}]}
-        def simulated_run(question, *, holdings, filing):
-            return run_agent(question, simulated_model, holdings=holdings, filing=filing)
+        def simulated_run(question, **context):
+            return run_agent(question, simulated_model, **context)
         with patch.dict(os.environ, {"OPENAI_API_KEY": "test"}), patch("backend.agent_api.run_agent", simulated_run):
             result = ask(QuestionRequest(csv_text="ticker,quantity,currency\nAMD,1,USD", question="Industry share?"))
         self.assertEqual(result["status"], "draft")
