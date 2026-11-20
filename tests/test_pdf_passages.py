@@ -7,7 +7,9 @@ import unittest
 from pypdf import PdfWriter
 from pypdf.constants import UserAccessPermissions
 
-from backend.filings.pdf import parse_pdf
+from backend.filings.pdf import PdfDocument, PdfPage, parse_pdf
+from backend.filings.__main__ import evidence_bundles
+from backend.pdf_evidence import PdfFiling
 
 
 SAMPLE = (
@@ -77,3 +79,28 @@ class PdfPassagesTests(unittest.TestCase):
         output = BytesIO()
         writer.write(output)
         return output.getvalue()
+
+
+class PdfExportTests(unittest.TestCase):
+    def test_export_splits_long_passages_and_keeps_every_locator(self):
+        body = " ".join(["revenue"] * 400)
+        document = PdfDocument("0" * 64, (PdfPage(1, "ok", text=body),))
+        chunks = list(evidence_bundles(document, ticker="AMD", quarter="2025-Q3",
+                                       published=date(2025, 11, 4)))
+        bundle, = map(PdfFiling.model_validate_json, chunks)
+        self.assertGreater(len(bundle.documents), 1)
+        self.assertEqual(" ".join(row.excerpt for row in bundle.documents), body)
+        self.assertEqual([row.url.rsplit("-", 1)[-1] for row in bundle.documents],
+                         [f"S{i}" for i in range(1, len(bundle.documents) + 1)])
+
+    def test_export_respects_count_and_utf8_limits_without_losing_rows(self):
+        for line in ("Quarterly statement", chr(0x6D4B) * 500):
+            with self.subTest(line_length=len(line)):
+                document = PdfDocument("a" * 64, (PdfPage(1, "ok", text="\n".join([line] * 1100)),))
+                chunks = list(evidence_bundles(document, ticker="AMD", quarter="2025-Q3",
+                                               published=date(2025, 11, 4)))
+                self.assertGreater(len(chunks), 1)
+                self.assertTrue(all(len(chunk) <= 512 * 1024 for chunk in chunks))
+                rows = [row for chunk in chunks for row in PdfFiling.model_validate_json(chunk).documents]
+                self.assertEqual(len(rows), 1100)
+                self.assertEqual(rows[-1].url.rsplit("-", 1)[-1], "S1100")

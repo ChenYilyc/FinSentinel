@@ -5,6 +5,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import date
 from io import BytesIO
+from textwrap import wrap
 from typing import Literal
 
 from pypdf import PasswordType, PdfReader
@@ -35,7 +36,16 @@ class PdfDocument:
                 continue
 
             lines = (line.strip() for line in page.text.splitlines())
-            excerpts = (line for line in lines if line)
+            excerpts = (
+                excerpt
+                for line in lines
+                if line
+                for excerpt in (
+                    (line,) if len(line) <= 1200 else
+                    wrap(line, width=1200, expand_tabs=False, replace_whitespace=False,
+                         break_on_hyphens=False)
+                )
+            )
             for number, excerpt in enumerate(excerpts, start=1):
                 yield {
                     "ticker": ticker,
