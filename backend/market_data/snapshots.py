@@ -6,7 +6,9 @@ from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-from ..market_contract import AvailableQuote, MarketSnapshot, MissingQuote
+from pydantic import ValidationError
+
+from ..market_contract import AvailableQuote, MarketSnapshot, MissingQuote, Quote
 
 
 CSV_COLUMNS = {"ticker", "trading_date", "currency", "close"}
@@ -58,8 +60,12 @@ def read_daily_close_csv(
                 if None in row or any(value is None for value in row.values()):
                     raise ValueError(f"Line {line}: expected four fields.")
                 ticker = row["ticker"].strip().upper()
-                if not ticker or row["currency"].strip().upper() != "USD":
-                    raise ValueError(f"Line {line}: expected ticker and USD currency.")
+                try:
+                    Quote(ticker=ticker)
+                except ValidationError as exc:
+                    raise ValueError(f"Line {line}: invalid ticker.") from exc
+                if row["currency"].strip().upper() != "USD":
+                    raise ValueError(f"Line {line}: expected USD currency.")
                 raw_date = row["trading_date"].strip()
                 try:
                     day = date.fromisoformat(raw_date)

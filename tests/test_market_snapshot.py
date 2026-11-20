@@ -39,6 +39,7 @@ class MarketSnapshotReaderTests(unittest.TestCase):
                 "AMD,2026-10-30,USD,NaN",
                 "AMD,2026-10-30,EUR,125.25",
                 "AMD,2026-10-30,USD",
+                "???,2026-10-30,USD,125.25",
                 "AMD,2026-10-30,USD,125.25\namd,2026-10-30,USD,126",
             ):
                 with self.subTest(rows=rows), self.assertRaises(ValueError):
@@ -86,3 +87,14 @@ class MarketSnapshotReaderTests(unittest.TestCase):
         self.assertEqual(result["total"], 100000)
         self.assertEqual(result["groups"][0]["weight"], 42)
         self.assertEqual(result["loss"], 3360)
+
+    def test_missing_price_outside_selected_sector_keeps_absolute_scenario_loss(self):
+        snapshot = read_snapshot(tickers=("AMD", "NVDA"))
+        result = analyze(
+            HOLDINGS + "\nJPM,5,USD", 35, "Semiconductors", 8, snapshot=snapshot
+        )
+        self.assertEqual(result["missing_tickers"], ["JPM"])
+        self.assertEqual(result["loss"], 3802)
+        self.assertIsNone(result["total"])
+        self.assertIsNone(result["loss_pct"])
+        self.assertIsNone(result["groups"])

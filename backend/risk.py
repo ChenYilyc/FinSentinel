@@ -99,6 +99,7 @@ def analyze(
     exposures: dict[str, Decimal] = defaultdict(Decimal)
     holdings = parse_holdings(raw)
     snapshot_metadata = {}
+    missing: list[str] = []
     if snapshot is None:
         prices = PRICE_HISTORY[-1][1]
     else:
@@ -123,13 +124,16 @@ def analyze(
         positions.append(dict(ticker=ticker, name=asset["name"], industry=asset["industry"],
                               quantity=quantity, price=price, value=value))
 
-    if snapshot_metadata.get("missing_tickers"):
+    loss = exposures.get(industry, Decimal(0)) * decline / 100
+    if missing:
+        sector_incomplete = any(UNIVERSE[ticker]["industry"] == industry for ticker in missing)
         for position in positions:
             position["weight"] = None
             for key in ("value", "quantity", "price"):
                 if position[key] is not None:
                     position[key] = float(position[key])
-        return dict(total=None, groups=None, positions=positions, loss=None, loss_pct=None,
+        return dict(total=None, groups=None, positions=positions,
+                    loss=None if sector_incomplete else float(loss), loss_pct=None,
                     industry=industry, decline=decline, threshold=threshold, history=None, **snapshot_metadata)
 
     total = sum(exposures.values())
@@ -142,7 +146,6 @@ def analyze(
         position["weight"] = float(position["value"] / total * 100)
         for key in ("value", "quantity", "price"):
             position[key] = float(position[key])
-    loss = exposures.get(industry, Decimal(0)) * decline / 100
     return dict(total=float(total), groups=groups,
                 positions=sorted(positions, key=lambda p: -p["value"]),
                 loss=float(loss), loss_pct=float(loss / total * 100),
