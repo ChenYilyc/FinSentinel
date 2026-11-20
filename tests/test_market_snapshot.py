@@ -98,3 +98,10 @@ class MarketSnapshotReaderTests(unittest.TestCase):
         self.assertIsNone(result["total"])
         self.assertIsNone(result["loss_pct"])
         self.assertIsNone(result["groups"])
+
+
+    def test_zero_decline_has_no_loss_even_when_sector_price_is_missing(self):
+        result = analyze(HOLDINGS, 35, "Semiconductors", 0, snapshot=read_snapshot(tickers=("AMD",)))
+        self.assertEqual(result["loss"], 0)
+        self.assertIsNone(result["loss_pct"])
+        self.assertEqual(result["missing_tickers"], ["NVDA"])

@@ -133,7 +133,7 @@ def analyze(
                 if position[key] is not None:
                     position[key] = float(position[key])
         return dict(total=None, groups=None, positions=positions,
-                    loss=None if sector_incomplete else float(loss), loss_pct=None,
+                    loss=None if sector_incomplete and decline else float(loss), loss_pct=None,
                     industry=industry, decline=decline, threshold=threshold, history=None, **snapshot_metadata)
 
     total = sum(exposures.values())
