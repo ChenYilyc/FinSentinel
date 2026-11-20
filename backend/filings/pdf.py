@@ -7,8 +7,9 @@ from datetime import date
 from io import BytesIO
 from typing import Literal
 
-from pypdf import PdfReader
-from pypdf.errors import PdfReadError
+from pypdf import PasswordType, PdfReader
+from pypdf.constants import UserAccessPermissions
+from pypdf.errors import DependencyError, PdfReadError
 
 
 @dataclass(frozen=True)
@@ -53,8 +54,16 @@ def parse_pdf(raw: bytes) -> PdfDocument:
     try:
         reader = PdfReader(BytesIO(raw))
         if reader.is_encrypted:
-            raise ValueError("Encrypted PDFs are not supported.")
+            if reader.decrypt("") == PasswordType.NOT_DECRYPTED:
+                raise ValueError("This PDF requires a password.")
+            permissions = reader.user_access_permissions
+            if reader.are_permissions_valid is False or not (
+                permissions and permissions & UserAccessPermissions.EXTRACT
+            ):
+                raise ValueError("This PDF does not permit text extraction.")
         page_count = len(reader.pages)
+    except DependencyError as exc:
+        raise ValueError("This PDF uses unsupported encryption.") from exc
     except PdfReadError as exc:
         raise ValueError("Could not read the PDF.") from exc
 
