@@ -1,17 +1,23 @@
-"""Local USD long-only portfolio, valued against a fixed synthetic price sheet."""
+"""Local USD long-only portfolio valuation and historical risk."""
 import csv
 import io
 import re
 from collections import defaultdict
+from collections.abc import Iterable
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 from statistics import stdev
+
+from .market_contract import MarketSnapshot
+from .market_data.snapshots import build_snapshot
 
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
 DEMO = (EXAMPLES / "portfolio.csv").read_text(encoding="utf-8")
 with (EXAMPLES / "universe.csv").open(encoding="utf-8", newline="") as source:
     UNIVERSE = {item["ticker"]: item for item in csv.DictReader(source)}
-SNAPSHOT_DATE = "2026-10-30"
+SYNTHETIC_AS_OF = datetime(2026, 10, 30, 20, 15, tzinfo=timezone.utc)
+SNAPSHOT_DATE = SYNTHETIC_AS_OF.date().isoformat()
 with (EXAMPLES / "prior_closes.csv").open(encoding="utf-8", newline="") as source:
     PRICE_HISTORY = [
         (row["date"], {ticker: Decimal(row[ticker]) for ticker in UNIVERSE})
@@ -71,19 +77,65 @@ def historical_risk(holdings: dict[str, Decimal]) -> dict:
     }
 
 
-def analyze(raw: str, threshold: int, industry: str, decline: int) -> dict:
+def synthetic_snapshot(tickers: Iterable[str]) -> MarketSnapshot:
+    """Read the fixed demo close with its original snapshot date."""
+    return build_snapshot(
+        tickers, PRICE_HISTORY[-1][1], trading_date=date.fromisoformat(SNAPSHOT_DATE),
+        as_of=SYNTHETIC_AS_OF, source="synthetic",
+    )
+
+
+def analyze(
+    raw: str,
+    threshold: int,
+    industry: str,
+    decline: int,
+    *,
+    snapshot: MarketSnapshot | None = None,
+) -> dict:
     if industry not in INDUSTRIES:
         raise ValueError("Choose a supported industry.")
     positions = []
     exposures: dict[str, Decimal] = defaultdict(Decimal)
     holdings = parse_holdings(raw)
+    snapshot_metadata = {}
+    missing: list[str] = []
+    if snapshot is None:
+        prices = PRICE_HISTORY[-1][1]
+    else:
+        prices = {quote.ticker: Decimal(str(quote.close))
+                  for quote in snapshot.quotes if quote.status == "available"}
+        prices["CASH"] = Decimal(1)
+        missing = sorted(set(holdings) - prices.keys())
+        snapshot_metadata = {
+            "status": "missing_prices" if missing else "ok",
+            "valuation_date": snapshot.trading_date.isoformat(),
+            "price_as_of": snapshot.as_of.isoformat(),
+            "price_source": snapshot.source,
+            "missing_tickers": missing,
+        }
+
     for ticker, quantity in holdings.items():
         asset = UNIVERSE[ticker]
-        price = Decimal(asset["price"])
-        value = price * quantity
-        exposures[asset["industry"]] += value
+        price = prices.get(ticker)
+        value = None if price is None else price * quantity
+        if value is not None:
+            exposures[asset["industry"]] += value
         positions.append(dict(ticker=ticker, name=asset["name"], industry=asset["industry"],
                               quantity=quantity, price=price, value=value))
+
+    loss = exposures.get(industry, Decimal(0)) * decline / 100
+    if missing:
+        sector_incomplete = any(UNIVERSE[ticker]["industry"] == industry for ticker in missing)
+        for position in positions:
+            position["weight"] = None
+            for key in ("value", "quantity", "price"):
+                if position[key] is not None:
+                    position[key] = float(position[key])
+        return dict(total=None, groups=None, positions=positions,
+                    loss=None if sector_incomplete and decline else float(loss), loss_pct=None,
+                    industry=industry, decline=decline, threshold=threshold, history=None, **snapshot_metadata)
+
     total = sum(exposures.values())
     groups = []
     for name, value in sorted(exposures.items(), key=lambda item: -item[1]):
@@ -94,9 +146,8 @@ def analyze(raw: str, threshold: int, industry: str, decline: int) -> dict:
         position["weight"] = float(position["value"] / total * 100)
         for key in ("value", "quantity", "price"):
             position[key] = float(position[key])
-    loss = exposures.get(industry, Decimal(0)) * decline / 100
     return dict(total=float(total), groups=groups,
                 positions=sorted(positions, key=lambda p: -p["value"]),
                 loss=float(loss), loss_pct=float(loss / total * 100),
                 industry=industry, decline=decline, threshold=threshold,
-                history=historical_risk(holdings))
+                history=historical_risk(holdings) if snapshot is None else None, **snapshot_metadata)
